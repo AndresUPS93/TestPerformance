@@ -67,7 +67,7 @@ export default function () {
 
   // ── Validaciones ──────────────────────────────────────────────────────────
   const success = check(res, {
-    'status es 200':              (r) => r.status === 200,
+    'status es 201':              (r) => r.status === 201,
     'respuesta contiene token':   (r) => r.json('token') !== undefined,
     'tiempo de respuesta < 1.5s': (r) => r.timings.duration < 1500,
   });

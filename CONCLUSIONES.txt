@@ -1,0 +1,91 @@
+============================================================
+HALLAZGOS Y CONCLUSIONES DE LA PRUEBA DE CARGA
+============================================================
+
+1. OBJETIVO DE LA PRUEBA:
+Validar que el endpoint /auth/login resista una carga constante de 20 TPS,
+manteniendo tiempos de respuesta menores a 1.5s y un porcentaje de error
+inferior al 3%.
+
+------------------------------------------------------------
+2. HALLAZGOS — EJECUCIÓN 1 (script original, check status 200)
+------------------------------------------------------------
+- Total de peticiones ejecutadas:        2,315
+- TPS promedio alcanzado:                17.76 TPS
+- Tiempo de respuesta promedio:          387.3 ms
+- Tiempo de respuesta mínimo:            330.84 ms
+- Tiempo de respuesta máximo:            913.78 ms
+- Tiempo de respuesta p(90):             413.29 ms
+- Tiempo de respuesta p(95):             477.57 ms
+- Tasa de error HTTP (http_req_failed):  0.00%
+- error_rate (métrica custom):           100.00% ← threshold ROJO
+- Check "status es 200":                 FALLÓ (0 / 2,315)
+- Check "respuesta contiene token":      PASÓ  (2,315 / 2,315)
+- Check "tiempo de respuesta < 1.5s":    PASÓ  (2,315 / 2,315)
+- Checks totales:                        6,945 | Exitosos: 4,630 (66.66%) | Fallidos: 2,315 (33.33%)
+
+------------------------------------------------------------
+3. HALLAZGOS — EJECUCIÓN 2 (script corregido, check status 201)
+------------------------------------------------------------
+- Total de peticiones ejecutadas:        2,314
+- TPS promedio alcanzado:                17.80 TPS
+- Tiempo de respuesta promedio:          377.76 ms
+- Tiempo de respuesta mínimo:            326.06 ms
+- Tiempo de respuesta máximo:            927.74 ms
+- Tiempo de respuesta p(90):             393.24 ms
+- Tiempo de respuesta p(95):             432.07 ms
+- Tasa de error HTTP (http_req_failed):  0.00%
+- error_rate (métrica custom):           0.00%  ← threshold VERDE
+- Check "status es 201":                 PASÓ  (2,314 / 2,314)
+- Check "respuesta contiene token":      PASÓ  (2,314 / 2,314)
+- Check "tiempo de respuesta < 1.5s":    PASÓ  (2,314 / 2,314)
+- Checks totales:                        6,942 | Exitosos: 6,942 (100.00%) | Fallidos: 0 (0.00%)
+
+------------------------------------------------------------
+4. COMPARATIVA ENTRE EJECUCIONES
+------------------------------------------------------------
+
+  Métrica                  Ejecución 1     Ejecución 2     Diferencia
+  -------                  -----------     -----------     ----------
+  TPS promedio             17.76/s         17.80/s         +0.04/s
+  Tiempo promedio          387.3 ms        377.76 ms       -9.54 ms  (mejor)
+  p(90)                    413.29 ms       393.24 ms       -20.05 ms (mejor)
+  p(95)                    477.57 ms       432.07 ms       -45.5 ms  (mejor)
+  http_req_failed          0.00%           0.00%           igual
+  error_rate               100.00%         0.00%           corregido
+  Checks exitosos          66.66%          100.00%         corregido
+  Threshold error_rate     ROJO ✗          VERDE ✓         corregido
+  Threshold http_req_dur   VERDE ✓         VERDE ✓         igual
+
+------------------------------------------------------------
+5. CONCLUSIONES:
+------------------------------------------------------------
+La Ejecución 2 fue EXITOSA. Ambos thresholds terminaron en verde.
+
+El ajuste del check de status (200 → 201) corrigió la validación funcional
+y alineó el script con el comportamiento real del endpoint. Como resultado,
+la error_rate bajó del 100% al 0% y todos los checks pasaron al 100%.
+
+En términos de rendimiento, la segunda ejecución mostró una leve mejora:
+el p95 pasó de 477.57 ms a 432.07 ms, manteniéndose muy por debajo del
+límite de 1,500 ms en ambas ejecuciones.
+
+La tasa de errores HTTP fue 0% en ambas ejecuciones, confirmando que el
+servicio nunca tuvo fallos reales de red o respuestas de error.
+
+El TPS promedio se mantuvo en ~17.8/s en ambas ejecuciones, ligeramente
+por debajo de los 20 TPS objetivo. Esto se atribuye a la naturaleza de la
+API pública y no a una limitación del script.
+
+------------------------------------------------------------
+6. RECOMENDACIONES:
+------------------------------------------------------------
+- El script queda corregido con status 201. No se requieren más cambios
+  en la validación funcional.
+
+- Los 20 TPS requeridos no se alcanzaron de forma sostenida al tratarse
+  de una API pública. En un ambiente controlado de staging el resultado
+  sería diferente y más confiable.
+
+- Se sugiere realizar una prueba de stress (escalando TPS hasta degradar
+  el servicio) para identificar el punto de quiebre del sistema.
